@@ -157,6 +157,9 @@ src/
     server-handlers.js     ⏳ exercise 5 (MSW)
     server.js              ⏳ exercise 5 (MSW)
     test-utils.js           ⏳ exercise 7 (custom render w/ ThemeProvider)
+    __bootstrap__/
+      sanity.test.js        — kept intentionally, see below
+      rtl-sanity.test.jsx    — kept intentionally, see below
   __tests__/
     exercise/
       01.test.jsx          ✅ done
@@ -169,15 +172,16 @@ src/
       08.test.jsx
   App.jsx                  — route index for manual browsing
   main.jsx                 — wraps App in BrowserRouter
-  sanity.test.js            — kept intentionally, see below
-  rtl-sanity.test.jsx        — kept intentionally, see below
 ```
 
-`sanity.test.js` and `rtl-sanity.test.jsx` were originally throwaway files used
-to verify the Vitest and RTL setup independently of the workshop exercises.
-Keeping them intentionally as minimal reference scaffolds for bootstrapping
-future projects — a fast way to confirm "is my Vitest+RTL config even working"
-before writing real tests.
+`src/test/__bootstrap__/sanity.test.js` and `rtl-sanity.test.jsx` were
+originally throwaway files used to verify the Vitest and RTL setup
+independently of the workshop exercises. Keeping them intentionally — moved
+into a dedicated `__bootstrap__/` folder alongside the other test
+infrastructure (`setup.js`) so they read clearly as "reference scaffold," not
+an accidental leftover test. They're a fast way to confirm "is my Vitest+RTL
+config even working" before writing real tests in a future project — just
+copy this folder over as a starting point.
 
 ---
 

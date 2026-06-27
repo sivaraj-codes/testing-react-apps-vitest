@@ -6,6 +6,7 @@ import LoginSubmission from "./components/login-submission.jsx";
 import Spinner from "./components/spinner.jsx";
 import { ThemeProvider, ThemeToggler } from "./components/theme.jsx";
 import "../src/App.css";
+import Location from "./components/location.jsx";
 
 const pages = [
   { path: "/counter", label: "Counter" },
@@ -13,6 +14,7 @@ const pages = [
   { path: "/login-submission", label: "Login Submission" },
   { path: "/spinner", label: "Spinner" },
   { path: "/easy-button", label: "Easy Button" },
+  { path: "/location", label: "Location" },
 ];
 
 function Home() {
@@ -33,7 +35,7 @@ function Home() {
 function App() {
   return (
     <div style={{ padding: "1rem" }}>
-      <nav>
+      <nav style={{ marginBlockEnd: "1rem" }}>
         <Link to="/">Home</Link>
       </nav>
       <Routes>
@@ -57,6 +59,7 @@ function App() {
             </ThemeProvider>
           }
         />
+        <Route path="/location" element={<Location />} />
       </Routes>
     </div>
   );

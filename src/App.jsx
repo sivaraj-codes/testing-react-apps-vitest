@@ -4,7 +4,7 @@ import EasyButton from "./components/easy-button.jsx";
 import Login from "./components/login.jsx";
 import LoginSubmission from "./components/login-submission.jsx";
 import Spinner from "./components/spinner.jsx";
-import { ThemeProvider } from "./components/theme.jsx";
+import { ThemeProvider, ThemeToggler } from "./components/theme.jsx";
 import "../src/App.css";
 
 const pages = [
@@ -49,7 +49,11 @@ function App() {
           path="/easy-button"
           element={
             <ThemeProvider>
-              <EasyButton>Click me</EasyButton>
+              <EasyButton onClick={() => alert("that was easy")}>
+                Easy
+              </EasyButton>
+              <hr />
+              <ThemeToggler />
             </ThemeProvider>
           }
         />

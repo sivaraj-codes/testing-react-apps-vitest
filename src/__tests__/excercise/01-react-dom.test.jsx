@@ -10,7 +10,7 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-describe("COUNTER", () => {
+describe("COUNTER (ReactDOM)", () => {
   it("counter increments and decrements when the buttons are clicked", () => {
     let el = document.createElement("div");
     document.body.append(el);

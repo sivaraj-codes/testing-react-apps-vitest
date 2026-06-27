@@ -1,11 +1,11 @@
 // this one doesn't really make sense to render on its own, so don't bother.
 
-import * as React from "react";
+import { createContext, useContext, useState } from "react";
 
-const ThemeContext = React.createContext();
+const ThemeContext = createContext();
 
 function useTheme() {
-  const context = React.useContext(ThemeContext);
+  const context = useContext(ThemeContext);
   if (!context) {
     throw new Error("useTheme should be used within a ThemeProvider");
   }
@@ -13,8 +13,17 @@ function useTheme() {
 }
 
 function ThemeProvider({ initialTheme = "light", ...props }) {
-  const [theme, setTheme] = React.useState(initialTheme);
-  return <ThemeContext.Provider value={[theme, setTheme]} {...props} />;
+  const [theme, setTheme] = useState(initialTheme);
+  return <ThemeContext.Provider value={{ theme, setTheme }} {...props} />;
 }
 
-export { useTheme, ThemeProvider };
+function ThemeToggler() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <button onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}>
+      Toggle theme: {theme}
+    </button>
+  );
+}
+
+export { useTheme, ThemeProvider, ThemeToggler };

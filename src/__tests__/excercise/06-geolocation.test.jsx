@@ -81,7 +81,7 @@ describe("Location", () => {
     render(<Location />);
     await user.click(screen.getByRole("button", { name: /get location/i }));
     let alertEl = await screen.findByRole("alert");
-    screen.debug(alertEl);
+    // screen.debug(alertEl);
     expect(alertEl).toHaveTextContent("User denied Geolocation");
   });
 });

@@ -53,6 +53,6 @@ describe("Login form", () => {
     await user.click(submitBtn);
     expect(handleSubmit).toHaveBeenCalledTimes(1);
     expect(handleSubmit).toHaveBeenCalledWith(formData);
-    console.log({ formData });
+    // console.log({ formData });
   });
 });

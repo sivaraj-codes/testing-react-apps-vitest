@@ -18,7 +18,7 @@ export const handlers = [
           { status: 400 },
         );
       }
-      await delay(0);
+      await delay(10);
       return HttpResponse.json({ username: body.username });
     },
   ),

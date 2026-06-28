@@ -1,8 +1,15 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+} from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import LoginSubmission from "../../components/login-submission";
 import { faker } from "@faker-js/faker";
 import userEvent from "@testing-library/user-event";
+import { server } from "../../test/server.js";
+import { delay, http, HttpResponse } from "msw";
 
 // mocking HTTP requests with MSW
 describe("LoginSubmission", () => {
@@ -53,7 +60,7 @@ describe("LoginSubmission", () => {
     const user = userEvent.setup();
     render(<LoginSubmission />);
     const userNameEl = screen.getByLabelText(/username/i);
-    const submitBtn = screen.getByRole("button", { name: /submi/i });
+    const submitBtn = screen.getByRole("button", { name: /submit/i });
     await user.type(userNameEl, faker.internet.username());
     await user.click(submitBtn);
     // await waitFor(() => {
@@ -63,5 +70,82 @@ describe("LoginSubmission", () => {
     // });
     const alertEl = await screen.findByRole("alert");
     expect(alertEl).toHaveTextContent("password required");
+  });
+});
+
+describe("LoginSubmission — server.use overrides + loading states", () => {
+  it("check username missing", async () => {
+    // Test 1: username missing (uses default handler)
+    // - type only password, leave username empty, submit
+    // - assert role="alert" shows "username required"
+    const user = userEvent.setup();
+    render(<LoginSubmission />);
+    const passwordEl = screen.getByLabelText(/password/i);
+    const submitBtn = screen.getByRole("button", { name: /submit/i });
+
+    await user.type(passwordEl, faker.internet.password());
+    await user.click(submitBtn);
+
+    const alertEl = await screen.findByRole("alert");
+    expect(alertEl).toHaveTextContent("username required");
+  });
+  it("checks server error", async () => {
+    server.use(
+      http.post("https://auth-provider.example.com/api/login", () => {
+        return HttpResponse.json(
+          { message: "Internal Server Error" },
+          { status: 500 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    render(<LoginSubmission />);
+    const usernameEl = screen.getByLabelText(/username/i);
+    const passwordEl = screen.getByLabelText(/password/i);
+    const submitBtn = screen.getByRole("button", { name: /submit/i });
+    let formData = {
+      username: faker.internet.username(),
+      password: faker.internet.password(),
+    };
+
+    await user.type(usernameEl, formData.username);
+    await user.type(passwordEl, formData.password);
+    await user.click(submitBtn);
+    const alertEl = await screen.findByRole("alert");
+    expect(alertEl).toHaveTextContent(/internal server error/i);
+  });
+
+  it("checks loading state", async () => {
+    let resolveLogin;
+    // slow down the response so we can catch the spinner
+    // slow down the response so we can catch the spinner
+    server.use(
+      http.post("https://auth-provider.example.com/api/login", async () => {
+        await new Promise((resolve) => (resolveLogin = resolve));
+        return HttpResponse.json({ username: "testuser" });
+      }),
+    );
+    const user = userEvent.setup();
+    render(<LoginSubmission />);
+    const usernameEl = screen.getByLabelText(/username/i);
+    const passwordEl = screen.getByLabelText(/password/i);
+    const submitBtn = screen.getByRole("button", { name: /submit/i });
+
+    await user.type(passwordEl, faker.internet.password());
+    await user.type(usernameEl, faker.internet.username());
+    await user.click(submitBtn);
+
+    // screen.debug();
+
+    expect(screen.getByLabelText(/loading/i)).toBeInTheDocument();
+
+    // now release the handler — fetch resolves
+    resolveLogin();
+
+    await waitForElementToBeRemoved(() => {
+      return screen.queryByLabelText(/loading/i);
+    });
+
+    expect(screen.getByText(/welcome/i)).toBeInTheDocument();
   });
 });

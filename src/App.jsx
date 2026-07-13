@@ -7,6 +7,7 @@ import Spinner from "./components/spinner.jsx";
 import { ThemeProvider, ThemeToggler } from "./components/theme.jsx";
 import "../src/App.css";
 import Location from "./components/location.jsx";
+import UserProfile from "./components/user-profile.jsx";
 
 const pages = [
   { path: "/counter", label: "Counter" },
@@ -15,6 +16,7 @@ const pages = [
   { path: "/spinner", label: "Spinner" },
   { path: "/easy-button", label: "Easy Button" },
   { path: "/location", label: "Location" },
+  { path: "/user-profile", label: "User Profile" },
 ];
 
 function Home() {
@@ -60,6 +62,7 @@ function App() {
           }
         />
         <Route path="/location" element={<Location />} />
+        <Route path="/user-profile" element={<UserProfile userId={1} />} />
       </Routes>
     </div>
   );

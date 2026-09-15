@@ -45,7 +45,11 @@ function App() {
         <Route path="/counter" element={<Counter />} />
         <Route
           path="/login"
-          element={<Login onSubmit={(data) => console.log(data)} />}
+          element={
+            <Login
+              onSubmit={(data) => console.log("login-data-submitted", data)}
+            />
+          }
         />
         <Route path="/login-submission" element={<LoginSubmission />} />
         <Route path="/spinner" element={<Spinner />} />

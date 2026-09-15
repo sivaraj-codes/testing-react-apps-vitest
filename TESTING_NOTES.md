@@ -1,4 +1,5 @@
 # React Testing Notes
+
 ## Vite + Vitest + React Testing Library + MSW v2
 
 > Built from scratch by migrating Kent C. Dodds' "Testing React Apps" workshop
@@ -32,10 +33,11 @@
 
 - Catch bugs before users do
 - Confidence to refactor without fear of breaking things
-- Tests document how code is *supposed* to behave
+- Tests document how code is _supposed_ to behave
 - The closer tests resemble real usage, the more confidence they give
 
 **Testing trophy (Kent C. Dodds):**
+
 ```
         E2E (few, slow, expensive)
        Integration (most value here)
@@ -47,17 +49,17 @@
 
 ## 2. Stack Overview
 
-| Tool | Version | Purpose | Replaces |
-|---|---|---|---|
-| Vite | ^8.x | Build tool + dev server | CRA (react-scripts) |
-| React | ^18.3.1 (pinned) | UI library | — |
-| Vitest | ^4.x | Test runner | Jest |
-| @testing-library/react | latest | Render + query helpers | same (unchanged) |
-| @testing-library/jest-dom | latest | DOM matchers (`toBeInTheDocument` etc.) | same (unchanged) |
-| @testing-library/user-event | v14+ | Simulates real user interactions | same lib, but API changed |
-| MSW | v2.x | Mock Service Worker — intercepts fetch | MSW v0.42 |
-| @faker-js/faker | latest | Generate realistic fake test data | — |
-| react-router-dom | v6 | Routes for manual browsing | — |
+| Tool                        | Version          | Purpose                                 | Replaces                  |
+| --------------------------- | ---------------- | --------------------------------------- | ------------------------- |
+| Vite                        | ^8.x             | Build tool + dev server                 | CRA (react-scripts)       |
+| React                       | ^18.3.1 (pinned) | UI library                              | —                         |
+| Vitest                      | ^4.x             | Test runner                             | Jest                      |
+| @testing-library/react      | latest           | Render + query helpers                  | same (unchanged)          |
+| @testing-library/jest-dom   | latest           | DOM matchers (`toBeInTheDocument` etc.) | same (unchanged)          |
+| @testing-library/user-event | v14+             | Simulates real user interactions        | same lib, but API changed |
+| MSW                         | v2.x             | Mock Service Worker — intercepts fetch  | MSW v0.42                 |
+| @faker-js/faker             | latest           | Generate realistic fake test data       | —                         |
+| react-router-dom            | v6               | Routes for manual browsing              | —                         |
 
 **Why React 18, not 19?**
 React 19 has breaking changes around `act()` semantics and `react-test-renderer`.
@@ -80,10 +82,10 @@ npm install --save-dev @types/react@18 @types/react-dom@18
 Pin React to 18 right after scaffolding — Vite's template defaults to latest React.
 Align `@types/react` too, otherwise VS Code intellisense shows React 19 APIs that don't exist in 18.
 
-### Step 2 — Install Vitest + jsdom
+### Step 2 — Install Vitest + jsdom + MSW v2 + Faker
 
 ```bash
-npm install --save-dev vitest jsdom
+npm install --save-dev vitest jsdom msw@2 @faker-js/faker
 ```
 
 Vite's default test environment is `node` — no DOM at all.
@@ -91,6 +93,7 @@ jsdom simulates a browser environment so React can render into it.
 CRA/Jest had this baked in invisibly. Vitest requires it explicitly.
 
 Add to `package.json`:
+
 ```json
 "scripts": {
   "test": "vitest"
@@ -103,19 +106,11 @@ Add to `package.json`:
 npm install --save-dev @testing-library/react @testing-library/jest-dom @testing-library/user-event
 ```
 
-### Step 4 — Install MSW v2
-
-```bash
-npm install --save-dev msw@2
-```
-
-### Step 5 — Install Faker
-
 ```bash
 npm install --save-dev @faker-js/faker
 ```
 
-### Step 6 — Install react-router-dom (for manual browsing)
+### Step 4 — Install react-router-dom (for manual browsing)
 
 ```bash
 npm install react-router-dom
@@ -128,34 +123,34 @@ npm install react-router-dom
 ### `vitest.config.js`
 
 ```js
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    environment: 'jsdom',        // simulate browser DOM
-    setupFiles: ['./src/test/setup.js'],  // runs before every test file
+    environment: "jsdom", // simulate browser DOM
+    setupFiles: ["./src/test/setup.js"], // runs before every test file
   },
-})
+});
 ```
 
 ### `src/test/setup.js`
 
 ```js
-import '@testing-library/jest-dom/vitest'  // adds toBeInTheDocument, toHaveStyle, etc.
-import { afterEach, beforeAll, afterAll } from 'vitest'
-import { cleanup } from '@testing-library/react'
-import { server } from './server.js'
+import "@testing-library/jest-dom/vitest"; // adds toBeInTheDocument, toHaveStyle, etc.
+import { afterEach, beforeAll, afterAll } from "vitest";
+import { cleanup } from "@testing-library/react";
+import { server } from "./server.js";
 
 // Tells React it's in a test environment — suppresses act() warnings
-globalThis.IS_REACT_ACT_ENVIRONMENT = true
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 // MSW lifecycle — intercept fetch calls across all tests
-beforeAll(() => server.listen())
+beforeAll(() => server.listen());
 afterEach(() => {
-  server.resetHandlers()  // undo per-test handler overrides
-  cleanup()               // unmount React trees between tests
-})
-afterAll(() => server.close())
+  server.resetHandlers(); // undo per-test handler overrides
+  cleanup(); // unmount React trees between tests
+});
+afterAll(() => server.close());
 ```
 
 **Why `/vitest` entry point for jest-dom?**
@@ -174,56 +169,62 @@ This is a separate concern from whether your `act()` usage is correct.
 ### `src/test/server-handlers.js`
 
 ```js
-import { http, HttpResponse, delay } from 'msw'
+import { http, HttpResponse, delay } from "msw";
 
 export const handlers = [
-  http.post('https://auth-provider.example.com/api/login', async ({ request }) => {
-    const body = await request.json()
+  http.post(
+    "https://auth-provider.example.com/api/login",
+    async ({ request }) => {
+      const body = await request.json();
 
-    if (!body.password) {
-      await delay(0)
-      return HttpResponse.json({ message: 'password required' }, { status: 400 })
-    }
-    if (!body.username) {
-      await delay(0)
-      return HttpResponse.json({ message: 'username required' }, { status: 400 })
-    }
+      if (!body.password) {
+        await delay(0);
+        return HttpResponse.json(
+          { message: "password required" },
+          { status: 400 },
+        );
+      }
+      if (!body.username) {
+        await delay(0);
+        return HttpResponse.json(
+          { message: "username required" },
+          { status: 400 },
+        );
+      }
 
-    await delay(0)
-    return HttpResponse.json({ username: body.username })
-  }),
-]
+      await delay(0);
+      return HttpResponse.json({ username: body.username });
+    },
+  ),
+];
 ```
 
 ### `src/test/server.js`
 
 ```js
-import { setupServer } from 'msw/node'
-import { handlers } from './server-handlers.js'
+import { setupServer } from "msw/node";
+import { handlers } from "./server-handlers.js";
 
-export const server = setupServer(...handlers)
+export const server = setupServer(...handlers);
 ```
 
 ### `src/test/test-utils.jsx`
 
 ```jsx
-import { render as rtlRender } from '@testing-library/react'
-import { ThemeProvider } from '../components/theme.jsx'
+import { render as rtlRender } from "@testing-library/react";
+import { ThemeProvider } from "../components/theme.jsx";
 
-function render(ui, { theme = 'light', ...options } = {}) {
+function render(ui, { theme = "light", ...options } = {}) {
   function Wrapper({ children }) {
-    return (
-      <ThemeProvider initialTheme={theme}>
-        {children}
-      </ThemeProvider>
-    )
+    return <ThemeProvider initialTheme={theme}>{children}</ThemeProvider>;
   }
-  return rtlRender(ui, { wrapper: Wrapper, ...options })
+  return rtlRender(ui, { wrapper: Wrapper, ...options });
 }
 
-// re-export everything from RTL — one import replaces @testing-library/react
-export * from '@testing-library/react'
-export { render }  // override RTL's render with our custom one
+// re-export everything from RTL so test files can import from test-utils
+// instead of @testing-library/react and get all the same APIs
+export * from "@testing-library/react";
+export { render }; // override RTL's render with our custom one
 ```
 
 ---
@@ -232,14 +233,14 @@ export { render }  // override RTL's render with our custom one
 
 ### The three query families
 
-| Family | Throws if missing | Returns | Use when |
-|---|---|---|---|
-| `getBy*` | ✅ immediately | Element | Element MUST exist right now |
-| `queryBy*` | ❌ returns null | Element or null | Asserting element does NOT exist |
-| `findBy*` | ✅ after timeout | Promise\<Element\> | Element appears asynchronously |
-| `getAllBy*` | ✅ if zero found | Element[] | Multiple elements must exist |
-| `queryAllBy*` | ❌ returns [] | Element[] | Assert multiple elements absent |
-| `findAllBy*` | ✅ after timeout | Promise\<Element[]\> | Multiple elements appear async |
+| Family        | Throws if missing | Returns              | Use when                         |
+| ------------- | ----------------- | -------------------- | -------------------------------- |
+| `getBy*`      | ✅ immediately    | Element              | Element MUST exist right now     |
+| `queryBy*`    | ❌ returns null   | Element or null      | Asserting element does NOT exist |
+| `findBy*`     | ✅ after timeout  | Promise\<Element\>   | Element appears asynchronously   |
+| `getAllBy*`   | ✅ if zero found  | Element[]            | Multiple elements must exist     |
+| `queryAllBy*` | ❌ returns []     | Element[]            | Assert multiple elements absent  |
+| `findAllBy*`  | ✅ after timeout  | Promise\<Element[]\> | Multiple elements appear async   |
 
 ### Query decision tree
 
@@ -263,36 +264,36 @@ Is the assertion async (element appears/disappears after fetch/timer)?
 
 ```js
 // button by accessible name
-screen.getByRole('button', { name: /submit/i })
+screen.getByRole("button", { name: /submit/i });
 
 // input by label connection (<label htmlFor="x"> + <input id="x">)
-screen.getByLabelText(/username/i)
+screen.getByLabelText(/username/i);
 
 // any text content (partial, case-insensitive)
-screen.getByText(/current count/i)
+screen.getByText(/current count/i);
 
 // element with ARIA role
-screen.getByRole('alert')
+screen.getByRole("alert");
 
 // wait for async element
-await screen.findByText(/welcome/i)
-await screen.findByRole('alert')
+await screen.findByText(/welcome/i);
+await screen.findByRole("alert");
 
 // assert element does NOT exist
-expect(screen.queryByText(/error/i)).not.toBeInTheDocument()
+expect(screen.queryByText(/error/i)).not.toBeInTheDocument();
 
 // wait for element to disappear
-await waitForElementToBeRemoved(() => screen.queryByRole('status'))
+await waitForElementToBeRemoved(() => screen.queryByRole("status"));
 ```
 
 ### `within` — scope queries to a container
 
 ```js
-import { within } from '@testing-library/react'
+import { within } from "@testing-library/react";
 
-const latRow = screen.getByText(/latitude/i)
-const value = within(latRow).getByText('18.9716')
-expect(value).toBeInTheDocument()
+const latRow = screen.getByText(/latitude/i);
+const value = within(latRow).getByText("18.9716");
+expect(value).toBeInTheDocument();
 ```
 
 Use `within` when multiple similar elements exist and you need to scope
@@ -306,16 +307,16 @@ Password inputs have no exposed ARIA role by spec (intentional).
 Always use `getByLabelText` for password fields:
 
 ```js
-screen.getByLabelText(/password/i)  // ✅ works for any labeled input
-screen.getByRole('textbox', { name: /password/i })  // ❌ throws for type="password"
+screen.getByLabelText(/password/i); // ✅ works for any labeled input
+screen.getByRole("textbox", { name: /password/i }); // ❌ throws for type="password"
 ```
 
 ### Accessible names — `aria-label` vs `aria-labelledby` vs `htmlFor`
 
-| Mechanism | When to use |
-|---|---|
-| `<label htmlFor="id">` | Standard form fields with visible labels |
-| `aria-label="string"` | Icon-only buttons, inputs with no visible label |
+| Mechanism                            | When to use                                                             |
+| ------------------------------------ | ----------------------------------------------------------------------- |
+| `<label htmlFor="id">`               | Standard form fields with visible labels                                |
+| `aria-label="string"`                | Icon-only buttons, inputs with no visible label                         |
 | `aria-labelledby="other-element-id"` | Reuse existing visible text as label, or compose from multiple elements |
 
 All three are queryable via `getByLabelText` — RTL checks all accessible name sources.
@@ -330,48 +331,53 @@ All three are queryable via `getByLabelText` — RTL checks all accessible name 
 **Purpose:** Feel what React Testing Library abstracts away by doing it manually first.
 
 ```jsx
-import { afterEach, describe, expect, it } from 'vitest'
-import { act } from 'react'
-import ReactDOM from 'react-dom/client'
-import Counter from '../../components/counter.jsx'
+import { afterEach, describe, expect, it } from "vitest";
+import { act } from "react";
+import ReactDOM from "react-dom/client";
+import Counter from "../../components/counter.jsx";
 
 afterEach(() => {
-  document.body.innerHTML = ''
-})
+  document.body.innerHTML = "";
+});
 
-describe('COUNTER', () => {
-  it('counter increments and decrements when the buttons are clicked', () => {
-    let el = document.createElement('div')
-    document.body.append(el)
-    let rootEl = ReactDOM.createRoot(el)
+describe("COUNTER", () => {
+  it("counter increments and decrements when the buttons are clicked", () => {
+    let el = document.createElement("div");
+    document.body.append(el);
+    let rootEl = ReactDOM.createRoot(el);
 
     act(() => {
-      rootEl.render(<Counter />)
-    })
+      rootEl.render(<Counter />);
+    });
 
-    let [decrementBtn, incrementBtn] = el.querySelectorAll('button')
-    const messageDiv = el.firstChild.firstChild  // outer wrapper → count div
+    let [decrementBtn, incrementBtn] = el.querySelectorAll("button");
+    const messageDiv = el.firstChild.firstChild; // outer wrapper → count div
 
-    expect(messageDiv).toHaveTextContent('Current count: 0')
+    expect(messageDiv).toHaveTextContent("Current count: 0");
 
-    const clickEvent = new MouseEvent('click', {
+    const clickEvent = new MouseEvent("click", {
       bubbles: true,
       cancelable: true,
       button: 0,
-    })
+    });
 
-    act(() => { incrementBtn.dispatchEvent(clickEvent) })
-    expect(messageDiv).toHaveTextContent('Current count: 1')
+    act(() => {
+      incrementBtn.dispatchEvent(clickEvent);
+    });
+    expect(messageDiv).toHaveTextContent("Current count: 1");
 
-    act(() => { decrementBtn.dispatchEvent(clickEvent) })
-    expect(messageDiv).toHaveTextContent('Current count: 0')
-  })
-})
+    act(() => {
+      decrementBtn.dispatchEvent(clickEvent);
+    });
+    expect(messageDiv).toHaveTextContent("Current count: 0");
+  });
+});
 ```
 
 **Key lessons:**
+
 - `ReactDOM.createRoot(el).render(...)` — React 18's new root API (replaces old `ReactDOM.render`)
-- `act()` must wrap *event dispatches*, not just `render()` — state updates from `dispatchEvent` in jsdom don't flush synchronously without it
+- `act()` must wrap _event dispatches_, not just `render()` — state updates from `dispatchEvent` in jsdom don't flush synchronously without it
 - `querySelector('div')` is fragile — finds the first div in depth-first order, which may not be the one you want. Use `firstChild.firstChild` to be explicit about the DOM shape
 - `bubbles: true` on `MouseEvent` — React's event system uses delegation at the root, so events must bubble to reach handlers
 - Manual `afterEach` cleanup needed — RTL's automatic `cleanup()` doesn't apply here since we're not using RTL's `render`
@@ -390,30 +396,31 @@ describe('COUNTER', () => {
 // getByRole queries the accessibility tree (resilient to markup changes).
 // userEvent simulates real interaction sequences; always await — v14+ is async.
 
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
-import Counter from '../../components/counter'
-import userEvent from '@testing-library/user-event'
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import Counter from "../../components/counter";
+import userEvent from "@testing-library/user-event";
 
-describe('Counter (RTL)', () => {
-  it('counter increments and decrements when the buttons are clicked', async () => {
-    const user = userEvent.setup()
+describe("Counter (RTL)", () => {
+  it("counter increments and decrements when the buttons are clicked", async () => {
+    const user = userEvent.setup();
 
-    render(<Counter />)
-    const incrementBtn = screen.getByRole('button', { name: /increment/i })
-    const decrementBtn = screen.getByRole('button', { name: /decrement/i })
-    const messageEl = screen.getByText(/current count/i)
+    render(<Counter />);
+    const incrementBtn = screen.getByRole("button", { name: /increment/i });
+    const decrementBtn = screen.getByRole("button", { name: /decrement/i });
+    const messageEl = screen.getByText(/current count/i);
 
-    expect(messageEl).toHaveTextContent('Current count: 0')
-    await user.click(incrementBtn)
-    expect(messageEl).toHaveTextContent('Current count: 1')
-    await user.click(decrementBtn)
-    expect(messageEl).toHaveTextContent('Current count: 0')
-  })
-})
+    expect(messageEl).toHaveTextContent("Current count: 0");
+    await user.click(incrementBtn);
+    expect(messageEl).toHaveTextContent("Current count: 1");
+    await user.click(decrementBtn);
+    expect(messageEl).toHaveTextContent("Current count: 0");
+  });
+});
 ```
 
 **Key lessons:**
+
 - `render()` internally wraps everything in `act()` — no manual act needed
 - `cleanup()` runs automatically between tests via `setup.js`
 - `getByRole('button', { name: /increment/i })` — queries by accessible name, more resilient than `getByText` for interactive elements
@@ -433,41 +440,44 @@ test IDs, or internal state. Tests that assert on implementation details break
 on refactors even when behavior is unchanged.
 
 ```jsx
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import EasyButton from '../../components/easy-button.jsx'
-import { ThemeProvider } from '../../components/theme.jsx'
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import EasyButton from "../../components/easy-button.jsx";
+import { ThemeProvider } from "../../components/theme.jsx";
 
-describe('EasyButton', () => {
-  it('renders with the light styles for the light theme', () => {
+describe("EasyButton", () => {
+  it("renders with the light styles for the light theme", () => {
     render(
       <ThemeProvider>
         <EasyButton>Easy</EasyButton>
-      </ThemeProvider>
-    )
-    const btn = screen.getByRole('button', { name: /easy/i })
+      </ThemeProvider>,
+    );
+    const btn = screen.getByRole("button", { name: /easy/i });
     expect(btn).toHaveStyle({
-      color: 'rgb(0, 0, 0)',
-      backgroundColor: 'rgb(255, 255, 255)',
-    })
-  })
-})
+      color: "rgb(0, 0, 0)",
+      backgroundColor: "rgb(255, 255, 255)",
+    });
+  });
+});
 ```
 
 **Key lessons:**
+
 - `toHaveStyle` checks computed/applied styles — closer to "what does this look like" than checking CSS class names. If the component switches from inline styles to CSS Modules, `toHaveStyle` still works; `toHaveClass('btn-light')` would break
 - **jsdom normalizes color values to `rgb(...)` format** — `'black'` in source becomes `'rgb(0, 0, 0)'` in the DOM. Always use `rgb(r, g, b)` in `toHaveStyle` assertions
 - Context-dependent components need their provider — `EasyButton` uses `useTheme()` which throws without `ThemeProvider`
 - **The refactor proof:** after changing `theme.jsx` context value from array `[theme, setTheme]` to object `{ theme, setTheme }`, the test needed zero changes — because it asserts on rendered output (button styles), not on the hook's internal return shape
 
 **Context value shapes — array vs object:**
+
 ```js
 // array shape (original)
-const [theme, setTheme] = useTheme()
+const [theme, setTheme] = useTheme();
 
 // object shape (refactored — more readable, self-documenting)
-const { theme, setTheme } = useTheme()
+const { theme, setTheme } = useTheme();
 ```
+
 Object shape is preferred in real codebases — no need to remember positional order.
 
 ---
@@ -478,35 +488,36 @@ Object shape is preferred in real codebases — no need to remember positional o
 **Component:** `Login` — username + password form, calls `onSubmit({ username, password })`
 
 ```jsx
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
-import { faker } from '@faker-js/faker'
-import userEvent from '@testing-library/user-event'
-import Login from '../../components/login.jsx'
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
+import userEvent from "@testing-library/user-event";
+import Login from "../../components/login.jsx";
 
-describe('Login form', () => {
-  it('calls onSubmit with the username and password the user typed', async () => {
-    const user = userEvent.setup()
-    const handleSubmit = vi.fn()
+describe("Login form", () => {
+  it("calls onSubmit with the username and password the user typed", async () => {
+    const user = userEvent.setup();
+    const handleSubmit = vi.fn();
 
     const formData = {
       username: faker.internet.username(),
       password: faker.internet.password(),
-    }
+    };
 
-    render(<Login onSubmit={handleSubmit} />)
+    render(<Login onSubmit={handleSubmit} />);
 
-    await user.type(screen.getByLabelText(/username/i), formData.username)
-    await user.type(screen.getByLabelText(/password/i), formData.password)
-    await user.click(screen.getByRole('button', { name: /submit/i }))
+    await user.type(screen.getByLabelText(/username/i), formData.username);
+    await user.type(screen.getByLabelText(/password/i), formData.password);
+    await user.click(screen.getByRole("button", { name: /submit/i }));
 
-    expect(handleSubmit).toHaveBeenCalledTimes(1)
-    expect(handleSubmit).toHaveBeenCalledWith(formData)
-  })
-})
+    expect(handleSubmit).toHaveBeenCalledTimes(1);
+    expect(handleSubmit).toHaveBeenCalledWith(formData);
+  });
+});
 ```
 
 **Key lessons:**
+
 - **`vi.fn()`** — Vitest's mock function (same API as Jest's `jest.fn()`). Pass it as a prop, then assert: was it called? How many times? With what args?
 - **`getByLabelText`** — correct query for form inputs. Works via `<label htmlFor="id">` ↔ `<input id="id">` connection. Also works with `aria-label` and `aria-labelledby`
 - **`@faker-js/faker`** — generates realistic fake data (names, emails, passwords). Use it instead of hardcoded strings like `'testuser'` — proves "whatever the user types is what gets submitted," not that a specific magic string works
@@ -514,11 +525,12 @@ describe('Login form', () => {
 - **`userEvent.type`** — simulates real typing keystroke by keystroke, not just setting `.value`. The `await` is essential (v14+ async)
 
 **Mock assertions:**
+
 ```js
-expect(fn).toHaveBeenCalledTimes(1)           // called exactly once
-expect(fn).toHaveBeenCalledWith({ a: 1 })     // called with specific args
-expect(fn).toHaveBeenLastCalledWith({ a: 1 }) // last call had these args
-expect(fn).not.toHaveBeenCalled()             // never called
+expect(fn).toHaveBeenCalledTimes(1); // called exactly once
+expect(fn).toHaveBeenCalledWith({ a: 1 }); // called with specific args
+expect(fn).toHaveBeenLastCalledWith({ a: 1 }); // last call had these args
+expect(fn).not.toHaveBeenCalled(); // never called
 ```
 
 ---
@@ -531,60 +543,65 @@ expect(fn).not.toHaveBeenCalled()             // never called
 **Purpose:** Intercept real `fetch()` calls in tests without changing component code.
 
 ```jsx
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
-import { faker } from '@faker-js/faker'
-import userEvent from '@testing-library/user-event'
-import LoginSubmission from '../../components/login-submission'
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { faker } from "@faker-js/faker";
+import userEvent from "@testing-library/user-event";
+import LoginSubmission from "../../components/login-submission";
 
-describe('LoginSubmission', () => {
-  it('shows a welcome message after successful login', async () => {
-    const user = userEvent.setup()
-    render(<LoginSubmission />)
+describe("LoginSubmission", () => {
+  it("shows a welcome message after successful login", async () => {
+    const user = userEvent.setup();
+    render(<LoginSubmission />);
 
     const formData = {
       username: faker.internet.username(),
       password: faker.internet.password(),
-    }
+    };
 
-    await user.type(screen.getByLabelText(/username/i), formData.username)
-    await user.type(screen.getByLabelText(/password/i), formData.password)
-    await user.click(screen.getByRole('button', { name: /submit/i }))
+    await user.type(screen.getByLabelText(/username/i), formData.username);
+    await user.type(screen.getByLabelText(/password/i), formData.password);
+    await user.click(screen.getByRole("button", { name: /submit/i }));
 
-    const welcomeMessage = await screen.findByText(/welcome/i)
-    expect(welcomeMessage).toBeInTheDocument()
-  })
+    const welcomeMessage = await screen.findByText(/welcome/i);
+    expect(welcomeMessage).toBeInTheDocument();
+  });
 
-  it('shows an error message if password is missing', async () => {
-    const user = userEvent.setup()
-    render(<LoginSubmission />)
+  it("shows an error message if password is missing", async () => {
+    const user = userEvent.setup();
+    render(<LoginSubmission />);
 
-    await user.type(screen.getByLabelText(/username/i), faker.internet.username())
-    await user.click(screen.getByRole('button', { name: /submit/i }))
+    await user.type(
+      screen.getByLabelText(/username/i),
+      faker.internet.username(),
+    );
+    await user.click(screen.getByRole("button", { name: /submit/i }));
 
-    const alertEl = await screen.findByRole('alert')
-    expect(alertEl).toHaveTextContent('password required')
-  })
-})
+    const alertEl = await screen.findByRole("alert");
+    expect(alertEl).toHaveTextContent("password required");
+  });
+});
 ```
 
 **MSW v2 vs v0 — what changed:**
 
-| v0 | v2 | Why |
-|---|---|---|
-| `import { rest } from 'msw'` | `import { http, HttpResponse } from 'msw'` | `rest` renamed to `http` |
-| `rest.post(url, (req, res, ctx) => {})` | `http.post(url, async ({ request }) => {})` | Resolver signature changed completely |
-| `req.body.password` (auto-parsed) | `await request.json()` then `.password` | `request` is now a real Fetch API `Request` object |
+| v0                                      | v2                                                 | Why                                                   |
+| --------------------------------------- | -------------------------------------------------- | ----------------------------------------------------- |
+| `import { rest } from 'msw'`            | `import { http, HttpResponse } from 'msw'`         | `rest` renamed to `http`                              |
+| `rest.post(url, (req, res, ctx) => {})` | `http.post(url, async ({ request }) => {})`        | Resolver signature changed completely                 |
+| `req.body.password` (auto-parsed)       | `await request.json()` then `.password`            | `request` is now a real Fetch API `Request` object    |
 | `res(ctx.status(400), ctx.json({...}))` | `return HttpResponse.json({...}, { status: 400 })` | Return a Response directly, no `res()`/`ctx` composer |
-| `ctx.delay(ms)` | `await delay(ms)` (standalone import) | `delay` is now a standalone async function |
+| `ctx.delay(ms)`                         | `await delay(ms)` (standalone import)              | `delay` is now a standalone async function            |
 
 **MSW v2 philosophy:** moved to native Fetch API `Request`/`Response` objects
 instead of custom `req`/`res`/`ctx` abstractions. What you learn transfers
 directly to Cloudflare Workers, Next.js route handlers, etc.
 
 **Key lessons:**
+
 - **`findBy*` for async DOM changes** — after submit, fetch runs, state updates, DOM changes. `getBy*` would run before the fetch resolves. `findBy*` polls until the element appears (default 1000ms timeout)
 - **`findBy*` vs `waitFor`:**
+
   ```js
   // findBy* — cleaner for "wait until element appears"
   const el = await screen.findByText(/welcome/i)
@@ -597,11 +614,14 @@ directly to Cloudflare Workers, Next.js route handlers, etc.
   // WRONG — always await waitFor, never discard the Promise
   waitFor(() => { expect(...) })  // false positive — test "passes" without asserting
   ```
+
 - **`server.resetHandlers()` in `afterEach`** — undoes per-test handler overrides so they don't leak. Per-test override example:
   ```js
   server.use(
-    http.post('/api/login', () => HttpResponse.json({ message: 'server error' }, { status: 500 }))
-  )
+    http.post("/api/login", () =>
+      HttpResponse.json({ message: "server error" }, { status: 500 }),
+    ),
+  );
   ```
 
 ---
@@ -614,70 +634,81 @@ directly to Cloudflare Workers, Next.js route handlers, etc.
 **Purpose:** Mock browser APIs that jsdom doesn't implement.
 
 ```jsx
-import { render, screen, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import Location from '../../components/location.jsx'
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import Location from "../../components/location.jsx";
 
-describe('Location', () => {
+describe("Location", () => {
   afterEach(() => {
-    vi.restoreAllMocks()
-  })
+    vi.restoreAllMocks();
+  });
 
-  it('shows coordinates after getting location successfully', async () => {
-    const user = userEvent.setup()
+  it("shows coordinates after getting location successfully", async () => {
+    const user = userEvent.setup();
     const fakePosition = {
       coords: { latitude: 18.9716, longitude: 80.5946 },
-    }
+    };
 
     // jsdom has no geolocation — define it first, then spy
-    Object.defineProperty(window.navigator, 'geolocation', {
+    Object.defineProperty(window.navigator, "geolocation", {
       value: { getCurrentPosition: vi.fn() },
       configurable: true,
-    })
+    });
 
-    vi.spyOn(window.navigator.geolocation, 'getCurrentPosition')
-      .mockImplementation((successCb) => {
-        successCb(fakePosition)  // synchronous — no async/delay
-      })
+    vi.spyOn(
+      window.navigator.geolocation,
+      "getCurrentPosition",
+    ).mockImplementation((successCb) => {
+      successCb(fakePosition); // synchronous — no async/delay
+    });
 
-    render(<Location />)
-    await user.click(screen.getByRole('button', { name: /get location/i }))
+    render(<Location />);
+    await user.click(screen.getByRole("button", { name: /get location/i }));
 
-    const latEl = await screen.findByText(/latitude/i)
-    const longEl = await screen.findByText(/longitude/i)
+    const latEl = await screen.findByText(/latitude/i);
+    const longEl = await screen.findByText(/longitude/i);
 
     // within — scope query to the right container
-    expect(within(latEl).getByText(fakePosition.coords.latitude)).toBeInTheDocument()
-    expect(within(longEl).getByText(fakePosition.coords.longitude)).toBeInTheDocument()
+    expect(
+      within(latEl).getByText(fakePosition.coords.latitude),
+    ).toBeInTheDocument();
+    expect(
+      within(longEl).getByText(fakePosition.coords.longitude),
+    ).toBeInTheDocument();
 
     // alternative — toHaveTextContent concatenates all text in element
-    expect(latEl).toHaveTextContent(`Latitude: ${fakePosition.coords.latitude}`)
-  })
+    expect(latEl).toHaveTextContent(
+      `Latitude: ${fakePosition.coords.latitude}`,
+    );
+  });
 
-  it('shows an error message if geolocation fails', async () => {
-    const user = userEvent.setup()
+  it("shows an error message if geolocation fails", async () => {
+    const user = userEvent.setup();
 
-    Object.defineProperty(window.navigator, 'geolocation', {
+    Object.defineProperty(window.navigator, "geolocation", {
       value: { getCurrentPosition: vi.fn() },
       configurable: true,
-    })
+    });
 
-    vi.spyOn(window.navigator.geolocation, 'getCurrentPosition')
-      .mockImplementation((successCb, errorCb) => {
-        errorCb({ message: 'User denied Geolocation' })
-      })
+    vi.spyOn(
+      window.navigator.geolocation,
+      "getCurrentPosition",
+    ).mockImplementation((successCb, errorCb) => {
+      errorCb({ message: "User denied Geolocation" });
+    });
 
-    render(<Location />)
-    await user.click(screen.getByRole('button', { name: /get location/i }))
+    render(<Location />);
+    await user.click(screen.getByRole("button", { name: /get location/i }));
 
-    const alertEl = await screen.findByRole('alert')
-    expect(alertEl).toHaveTextContent('User denied Geolocation')
-  })
-})
+    const alertEl = await screen.findByRole("alert");
+    expect(alertEl).toHaveTextContent("User denied Geolocation");
+  });
+});
 ```
 
 **Key lessons:**
+
 - **`vi.spyOn` requires an existing object** — if jsdom doesn't implement the API, `vi.spyOn` throws `could not find object to spy upon`. Define the API with `Object.defineProperty` first
 - **`Object.defineProperty` over direct assignment** — `window.navigator` is read-only; direct assignment silently fails in strict mode
 - **`configurable: true`** — allows `vi.restoreAllMocks()` to delete/restore the property after each test
@@ -685,13 +716,14 @@ describe('Location', () => {
 - **`vi.restoreAllMocks()` in `afterEach`** — restores all spies to original implementations. Same concept as `server.resetHandlers()` but for module/browser API mocks
 
 **`vi.spyOn` vs `vi.fn()`:**
+
 ```js
 // vi.spyOn — patches an existing method on an object, can restore original
-vi.spyOn(obj, 'method').mockImplementation(() => 'fake')
-vi.restoreAllMocks()  // restores obj.method to original
+vi.spyOn(obj, "method").mockImplementation(() => "fake");
+vi.restoreAllMocks(); // restores obj.method to original
 
 // vi.fn() — standalone mock, not tied to any object
-const mockFn = vi.fn().mockImplementation(() => 'fake')
+const mockFn = vi.fn().mockImplementation(() => "fake");
 // use as a prop: <Component onSubmit={mockFn} />
 ```
 
@@ -712,39 +744,41 @@ option and a custom render function.
 render(
   <ThemeProvider initialTheme="light">
     <EasyButton>Easy</EasyButton>
-  </ThemeProvider>
-)
+  </ThemeProvider>,
+);
 
 // ❷ RTL wrapper option — component under test is the clear focus
 render(<EasyButton>Easy</EasyButton>, {
   wrapper: ({ children }) => (
     <ThemeProvider initialTheme="light">{children}</ThemeProvider>
   ),
-})
+});
 // wrapper is automatically re-applied on rerender() calls too
 
 // ❸ Custom render — zero provider knowledge in test files
-import { render, screen } from '../../test/test-utils'
-render(<EasyButton>Easy</EasyButton>, { theme: 'light' })
+import { render, screen } from "../../test/test-utils";
+render(<EasyButton>Easy</EasyButton>, { theme: "light" });
 ```
 
 **`src/test/test-utils.jsx`:**
-```jsx
-import { render as rtlRender } from '@testing-library/react'
-import { ThemeProvider } from '../components/theme.jsx'
 
-function render(ui, { theme = 'light', ...options } = {}) {
+```jsx
+import { render as rtlRender } from "@testing-library/react";
+import { ThemeProvider } from "../components/theme.jsx";
+
+function render(ui, { theme = "light", ...options } = {}) {
   function Wrapper({ children }) {
-    return <ThemeProvider initialTheme={theme}>{children}</ThemeProvider>
+    return <ThemeProvider initialTheme={theme}>{children}</ThemeProvider>;
   }
-  return rtlRender(ui, { wrapper: Wrapper, ...options })
+  return rtlRender(ui, { wrapper: Wrapper, ...options });
 }
 
-export * from '@testing-library/react'  // re-export screen, waitFor, within, etc.
-export { render }                        // override with custom render
+export * from "@testing-library/react"; // re-export screen, waitFor, within, etc.
+export { render }; // override with custom render
 ```
 
 **Key lessons:**
+
 - **`wrapper` option** — automatically wraps `render` and `rerender` calls. Without it, you'd have to manually wrap `rerender` with providers too
 - **`export * from '@testing-library/react'`** then `export { render }` — the named `render` export overrides what `export *` would re-export. Test files get everything from one import
 - **The "one import" pattern is standard** — real projects put all providers (Router, Theme, Auth, Redux store) in `test-utils` and never import from `@testing-library/react` directly in test files
@@ -759,68 +793,71 @@ export { render }                        // override with custom render
 **Purpose:** Test hook logic directly without building a component around it.
 
 ```jsx
-import { act, renderHook } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
-import useCounter from '../../components/use-counter.jsx'
+import { act, renderHook } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import useCounter from "../../components/use-counter.jsx";
 
-describe('useCounter', () => {
-  it('exposes count and increment/decrement', () => {
-    const { result } = renderHook(useCounter)
+describe("useCounter", () => {
+  it("exposes count and increment/decrement", () => {
+    const { result } = renderHook(useCounter);
 
-    expect(result.current.count).toBe(0)
-    act(() => result.current.increment())
-    expect(result.current.count).toBe(1)
-    act(() => result.current.decrement())
-    expect(result.current.count).toBe(0)
-  })
+    expect(result.current.count).toBe(0);
+    act(() => result.current.increment());
+    expect(result.current.count).toBe(1);
+    act(() => result.current.decrement());
+    expect(result.current.count).toBe(0);
+  });
 
-  it('allows customising the initial count', () => {
+  it("allows customising the initial count", () => {
     const { result } = renderHook(useCounter, {
       initialProps: { initialCount: 3 },
-    })
-    expect(result.current.count).toBe(3)
-  })
+    });
+    expect(result.current.count).toBe(3);
+  });
 
-  it('allows customising the step', () => {
+  it("allows customising the step", () => {
     const { result } = renderHook(useCounter, {
       initialProps: { initialCount: 0, step: 2 },
-    })
-    act(() => result.current.increment())
-    expect(result.current.count).toBe(2)
-    act(() => result.current.decrement())
-    expect(result.current.count).toBe(0)
-  })
+    });
+    act(() => result.current.increment());
+    expect(result.current.count).toBe(2);
+    act(() => result.current.decrement());
+    expect(result.current.count).toBe(0);
+  });
 
-  it('allows customising the step with rerender', () => {
+  it("allows customising the step with rerender", () => {
     const { result, rerender } = renderHook(useCounter, {
       initialProps: { initialCount: 0, step: 1 },
-    })
+    });
 
-    act(() => result.current.increment())
-    expect(result.current.count).toBe(1)
+    act(() => result.current.increment());
+    expect(result.current.count).toBe(1);
 
-    rerender({ step: 5 })  // change props mid-test
+    rerender({ step: 5 }); // change props mid-test
 
-    act(() => result.current.increment())
-    expect(result.current.count).toBe(6)  // 1 + 5 (new step)
-  })
-})
+    act(() => result.current.increment());
+    expect(result.current.count).toBe(6); // 1 + 5 (new step)
+  });
+});
 ```
 
 **Key lessons:**
+
 - **Why not call hooks directly in tests?** React's rules of hooks — hooks only run inside a component's render cycle. Calling one in plain JS throws immediately
 - **`renderHook(fn)`** — `fn` is a callback that RTL calls inside a real (hidden) component. Return value is `{ result, rerender, unmount }`
 - **`result.current`** — always reflects the hook's most recent return value. No need to re-destructure after `act()`
 - **`act()` for state-updating calls** — `result.current.increment()` calls `setCount` inside the hook. React needs `act()` to flush that update before your assertion
 - **`initialProps` vs arrow function:**
+
   ```js
   // arrow function — clean for fixed options
-  renderHook(() => useCounter({ initialCount: 3 }))
+  renderHook(() => useCounter({ initialCount: 3 }));
 
   // initialProps — required when you need rerender with different props
-  const { rerender } = renderHook(useCounter, { initialProps: { step: 1 } })
-  rerender({ step: 5 })  // ← not possible with arrow function approach
+  const { rerender } = renderHook(useCounter, { initialProps: { step: 1 } });
+  rerender({ step: 5 }); // ← not possible with arrow function approach
   ```
+
 - **`rerender` with `initialCount` won't reset count** — `useState` ignores new initial values after first mount. Only `step` takes effect on rerender because it's read fresh every render
 
 ---
@@ -829,19 +866,19 @@ describe('useCounter', () => {
 
 Real bugs hit during this build — the most useful reference section.
 
-| Problem | Root Cause | Fix |
-|---|---|---|
-| Vitest doesn't discover exercise files | Default pattern requires `.test.` or `.spec.` in filename | Rename to `0N.test.jsx` |
-| `Failed to parse source — invalid JS syntax` on `.js` file with JSX | Vite's esbuild only applies JSX transform to `.jsx`/`.tsx` | Rename component files `.js` → `.jsx` |
-| `toHaveTextContent` received null | `el.querySelector('div')` matched outer wrapper div, not count div | Use `el.firstChild.firstChild` to be explicit |
-| Count didn't update after `dispatchEvent` | jsdom's `dispatchEvent` doesn't auto-flush `setState` | Wrap every `dispatchEvent` in `act(() => {...})` |
-| `act()` warning even when `act()` used correctly | `IS_REACT_ACT_ENVIRONMENT` not set — React doesn't know it's in test env | Add `globalThis.IS_REACT_ACT_ENVIRONMENT = true` to `setup.js` |
-| `toHaveStyle({ color: 'black' })` fails | jsdom normalizes colors to `rgb(...)` format | Use `rgb(0, 0, 0)` instead of `'black'` |
-| `vi.spyOn` throws `could not find object` | `window.navigator.geolocation` is undefined in jsdom | Define it first with `Object.defineProperty(..., { configurable: true })` |
-| `waitFor` test passes but never actually asserts | `waitFor` returns a Promise that was never awaited | Always `await waitFor(...)` — unawaited = false positive |
-| `getByRole('textbox')` can't find password input | `type="password"` inputs have no ARIA `textbox` role by spec | Use `getByLabelText(/password/i)` instead |
-| `faker.internet.password` is a function, not a string | Missing `()` — passed the function reference instead of calling it | `faker.internet.password()` with parentheses |
-| MSW `req.body` is undefined in v2 | v2 uses real Fetch `Request` object — no auto-parsed body | `const body = await request.json()` then use `body.property` |
+| Problem                                                             | Root Cause                                                               | Fix                                                                       |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| Vitest doesn't discover exercise files                              | Default pattern requires `.test.` or `.spec.` in filename                | Rename to `0N.test.jsx`                                                   |
+| `Failed to parse source — invalid JS syntax` on `.js` file with JSX | Vite's esbuild only applies JSX transform to `.jsx`/`.tsx`               | Rename component files `.js` → `.jsx`                                     |
+| `toHaveTextContent` received null                                   | `el.querySelector('div')` matched outer wrapper div, not count div       | Use `el.firstChild.firstChild` to be explicit                             |
+| Count didn't update after `dispatchEvent`                           | jsdom's `dispatchEvent` doesn't auto-flush `setState`                    | Wrap every `dispatchEvent` in `act(() => {...})`                          |
+| `act()` warning even when `act()` used correctly                    | `IS_REACT_ACT_ENVIRONMENT` not set — React doesn't know it's in test env | Add `globalThis.IS_REACT_ACT_ENVIRONMENT = true` to `setup.js`            |
+| `toHaveStyle({ color: 'black' })` fails                             | jsdom normalizes colors to `rgb(...)` format                             | Use `rgb(0, 0, 0)` instead of `'black'`                                   |
+| `vi.spyOn` throws `could not find object`                           | `window.navigator.geolocation` is undefined in jsdom                     | Define it first with `Object.defineProperty(..., { configurable: true })` |
+| `waitFor` test passes but never actually asserts                    | `waitFor` returns a Promise that was never awaited                       | Always `await waitFor(...)` — unawaited = false positive                  |
+| `getByRole('textbox')` can't find password input                    | `type="password"` inputs have no ARIA `textbox` role by spec             | Use `getByLabelText(/password/i)` instead                                 |
+| `faker.internet.password` is a function, not a string               | Missing `()` — passed the function reference instead of calling it       | `faker.internet.password()` with parentheses                              |
+| MSW `req.body` is undefined in v2                                   | v2 uses real Fetch `Request` object — no auto-parsed body                | `const body = await request.json()` then use `body.property`              |
 
 ---
 
@@ -851,6 +888,7 @@ Real bugs hit during this build — the most useful reference section.
 RTL tests components from the user's perspective — querying by accessible role, label text, or visible text rather than component internals like state or methods. Enzyme let you assert on internal state and call lifecycle methods directly, which couples tests to implementation — tests break on refactors even when behavior is unchanged. RTL's guiding principle: "The more your tests resemble the way your software is used, the more confidence they can give you."
 
 **Q: What's the difference between `getBy`, `queryBy`, and `findBy`?**
+
 - `getBy*` — throws immediately if element not found. Use when element must exist right now.
 - `queryBy*` — returns null if not found. Use when asserting an element does NOT exist.
 - `findBy*` — returns a Promise, polls until element appears or times out. Use for async DOM changes (after fetch, timer, etc.).
